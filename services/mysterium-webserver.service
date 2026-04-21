@@ -1,0 +1,13 @@
+[Unit]
+Description=Mysterium Dashboard Web Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mysterium-dashboard
+ExecStart=/usr/bin/python3 -m http.server 8888
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

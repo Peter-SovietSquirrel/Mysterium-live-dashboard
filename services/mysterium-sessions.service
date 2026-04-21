@@ -1,0 +1,12 @@
+[Unit]
+Description=Mysterium Live Sessions Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'while true; do /opt/mysterium-dashboard/update_sessions.sh; sleep 10; done'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Live Sessions Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1625 0%, #2d2640 100%);
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 300;
+            font-size: 2.5em;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-box {
+            background: rgba(91, 76, 129, 0.3);
+            border: 1px solid rgba(139, 116, 186, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-label {
+            color: #a8a0c0;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            color: #ffffff;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(42, 35, 61, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        th {
+            background: rgba(75, 63, 105, 0.8);
+            color: #b8b0d0;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(139, 116, 186, 0.3);
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(91, 76, 129, 0.2);
+            color: #e0e0e0;
+        }
+        tr:hover {
+            background: rgba(91, 76, 129, 0.2);
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .node-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #a8a0c0;
+        }
+        .earnings {
+            color: #7dd3fc;
+            font-weight: 600;
+        }
+        .data-transfer {
+            color: #86efac;
+            font-weight: 600;
+        }
+        .refresh-info {
+            text-align: center;
+            margin-top: 20px;
+            color: #a8a0c0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔴 Live Mysterium Sessions</h1>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Active Sessions</div>
+                <div class="stat-value" id="sessionCount">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Earnings</div>
+                <div class="stat-value earnings" id="totalEarnings">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Data Transferred</div>
+                <div class="stat-value data-transfer" id="totalData">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Active Nodes</div>
+                <div class="stat-value" id="activeNodes">-</div>
+            </div>
+        </div>
+
+        <table id="sessionsTable">
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Duration</th>
+                    <th>Service</th>
+                    <th>Earnings</th>
+                    <th>Transferred</th>
+                    <th>Node</th>
+                    <th>Session ID</th>
+                </tr>
+            </thead>
+            <tbody id="sessionsBody">
+                <tr><td colspan="7" style="text-align:center; padding:40px;">Loading sessions...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="refresh-info">
+            Auto-refresh every 10 seconds • Last updated: <span id="lastUpdate">-</span>
+        </div>
+    </div>
+
+    <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDuration(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (days > 0) {
+                return `${days}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            } else {
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        }
+
+        function updateDashboard() {
+            fetch('live_sessions.json')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('sessionsBody');
+                    tbody.innerHTML = '';
+
+                    let totalEarnings = 0;
+                    let totalDataBytes = 0;
+                    const activeNodes = new Set();
+
+                    data.sessions.forEach(session => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${session.consumer_country || 'Unknown'}</td>
+                            <td>${formatDuration(session.duration)}</td>
+                            <td>${session.service_type}</td>
+                            <td class="earnings">${session.earnings_myst.toFixed(6)} MYST</td>
+                            <td class="data-transfer">${formatBytes(session.bytes_transferred)}</td>
+                            <td>${session.node_name}</td>
+                            <td class="node-id">${session.id.substring(0, 8)}...</td>
+                        `;
+
+                        totalEarnings += session.earnings_myst;
+                        totalDataBytes += session.bytes_transferred;
+                        activeNodes.add(session.node_name);
+                    });
+
+                    document.getElementById('sessionCount').textContent = data.sessions.length;
+                    document.getElementById('totalEarnings').textContent = totalEarnings.toFixed(5) + ' MYST';
+                    document.getElementById('totalData').textContent = formatBytes(totalDataBytes);
+                    document.getElementById('activeNodes').textContent = activeNodes.size;
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                })
+                .catch(error => {
+                    console.error('Error fetching sessions:', error);
+                    document.getElementById('sessionsBody').innerHTML = 
+                        '<tr><td colspan="7" style="text-align:center; padding:40px; color:#ff6b6b;">Error loading sessions: ' + error.message + '</td></tr>';
+                });
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 10000);
+    </script>
+</body>
+</html>

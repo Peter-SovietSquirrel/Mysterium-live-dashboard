@@ -1,0 +1,23 @@
+# Configuration files with sensitive data
+config.env
+*.env
+
+# Data files
+*.json
+*.csv
+*.log
+
+# Backup files
+*.backup
+*.old
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo

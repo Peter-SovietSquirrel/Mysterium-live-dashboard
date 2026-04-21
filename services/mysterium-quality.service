@@ -1,0 +1,12 @@
+[Unit]
+Description=Mysterium Quality Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'while true; do /opt/mysterium-dashboard/update_quality.sh; sleep 60; done'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
